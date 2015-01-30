@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  * 
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -35,7 +35,7 @@
 #include "VstSyncController.h"
 
 class AutomationTrack;
-class pattern;
+class Pattern;
 class timeLine;
 
 
@@ -259,7 +259,7 @@ public slots:
 	void playAndRecord();
 	void playTrack( track * _trackToPlay );
 	void playBB();
-	void playPattern( pattern * _patternToPlay, bool _loop = true );
+	void playPattern( Pattern* patternToPlay, bool _loop = true );
 	void togglePause();
 	void stop();
 
@@ -344,7 +344,7 @@ private:
 	tact_t m_length;
 
 	track * m_trackToPlay;
-	pattern * m_patternToPlay;
+	Pattern* m_patternToPlay;
 	bool m_loopPattern;
 
 	double m_elapsedMilliSeconds;

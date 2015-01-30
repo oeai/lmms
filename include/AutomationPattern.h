@@ -5,7 +5,7 @@
  * Copyright (c) 2008-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  * Copyright (c) 2006-2008 Javier Serrano Polo <jasp00/at/users.sourceforge.net>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -27,6 +27,7 @@
 #ifndef AUTOMATION_PATTERN_H
 #define AUTOMATION_PATTERN_H
 
+#include <QtCore/QMap>
 #include <QtCore/QPointer>
 
 #include "track.h"
@@ -151,15 +152,24 @@ public:
 
 
 	static bool isAutomated( const AutomatableModel * _m );
+	static QVector<AutomationPattern *> patternsForModel( const AutomatableModel * _m );
 	static AutomationPattern * globalAutomationPattern( AutomatableModel * _m );
 	static void resolveAllIDs();
 
+	bool isRecording() const
+	{
+		return m_isRecording;
+	}
+	
+	void setRecording( const bool b )
+	{
+		m_isRecording = b;
+	}
 
 public slots:
 	void clear();
 	void openInAutomationEditor();
 	void objectDestroyed( jo_id_t );
-
 
 private:
 	void cleanObjects();
@@ -178,6 +188,9 @@ private:
 	ProgressionTypes m_progressionType;
 
 	bool m_dragging;
+	
+	bool m_isRecording;
+	float m_lastRecordedValue;
 
 	static const float DEFAULT_MIN_VALUE;
 	static const float DEFAULT_MAX_VALUE;

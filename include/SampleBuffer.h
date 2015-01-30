@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2005-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -22,6 +22,7 @@
  *
  */
 
+
 #ifndef SAMPLE_BUFFER_H
 #define SAMPLE_BUFFER_H
 
@@ -36,37 +37,64 @@
 #include "lmms_basics.h"
 #include "lmms_math.h"
 #include "shared_object.h"
+#include "Mixer.h"
 
 
 class QPainter;
 
+// values for buffer margins, used for various libsamplerate interpolation modes
+// the array positions correspond to the converter_type parameter values in libsamplerate
+// if there appears problems with playback on some interpolation mode, then the value for that mode
+// may need to be higher - conversely, to optimize, some may work with lower values
+const f_cnt_t MARGIN[] = { 64, 64, 64, 4, 4 };
 
 class EXPORT SampleBuffer : public QObject, public sharedObject
 {
 	Q_OBJECT
 public:
+	enum LoopMode {
+		LoopOff = 0,
+		LoopOn,
+		LoopPingPong
+	};
 	class EXPORT handleState
 	{
 	public:
-		handleState( bool _varying_pitch = false );
+		handleState( bool _varying_pitch = false, int interpolation_mode = SRC_LINEAR );
 		virtual ~handleState();
 
-		inline const f_cnt_t frameIndex() const
+		const f_cnt_t frameIndex() const
 		{
 			return m_frameIndex;
 		}
 
-		inline void setFrameIndex( f_cnt_t _index )
+		void setFrameIndex( f_cnt_t _index )
 		{
 			m_frameIndex = _index;
 		}
 
+		bool isBackwards() const
+		{
+			return m_isBackwards;
+		}
+
+		void setBackwards( bool _backwards )
+		{
+			m_isBackwards = _backwards;
+		}
+		
+		int interpolationMode() const
+		{
+			return m_interpolationMode;
+		}
 
 
 	private:
 		f_cnt_t m_frameIndex;
 		const bool m_varyingPitch;
+		bool m_isBackwards;
 		SRC_STATE * m_resamplingData;
+		int m_interpolationMode;
 
 		friend class SampleBuffer;
 
@@ -85,7 +113,7 @@ public:
 	bool play( sampleFrame * _ab, handleState * _state,
 				const fpp_t _frames,
 				const float _freq,
-				const bool _looped = false );
+				const LoopMode _loopmode = LoopOff );
 
 	void visualize( QPainter & _p, const QRect & _dr, const QRect & _clip, f_cnt_t _from_frame = 0, f_cnt_t _to_frame = 0 );
 	inline void visualize( QPainter & _p, const QRect & _dr, f_cnt_t _from_frame = 0, f_cnt_t _to_frame = 0 )
@@ -98,18 +126,49 @@ public:
 		return m_audioFile;
 	}
 
-	f_cnt_t startFrame() const
+	inline f_cnt_t startFrame() const
 	{
 		return m_startFrame;
 	}
 
-	f_cnt_t endFrame() const
+	inline f_cnt_t endFrame() const
 	{
 		return m_endFrame;
 	}
 
-	void setLoopStartFrame( f_cnt_t start );
-	void setLoopEndFrame( f_cnt_t end );
+	inline f_cnt_t loopStartFrame() const
+	{
+		return m_loopStartFrame;
+	}
+
+	inline f_cnt_t loopEndFrame() const
+	{
+		return m_loopEndFrame;
+	}
+
+	void setLoopStartFrame( f_cnt_t _start )
+	{
+		m_varLock.lock();
+		m_loopStartFrame = _start;
+		m_varLock.unlock();
+	}
+
+	void setLoopEndFrame( f_cnt_t _end )
+	{
+		m_varLock.lock();
+		m_loopEndFrame = _end;
+		m_varLock.unlock();
+	}
+
+	void setAllPointFrames( f_cnt_t _start, f_cnt_t _end, f_cnt_t _loopstart, f_cnt_t _loopend )
+	{
+		m_varLock.lock();
+		m_startFrame = _start;
+		m_endFrame = _end;
+		m_loopStartFrame = _loopstart;
+		m_loopEndFrame = _loopend;
+		m_varLock.unlock();
+	}
 
 	inline f_cnt_t frames() const
 	{
@@ -163,7 +222,7 @@ public:
     QString openAudioFile() const;
     QString openAndSetAudioFile();
 	QString openAndSetWaveformFile();
-	
+
 	QString & toBase64( QString & _dst ) const;
 
 
@@ -185,23 +244,13 @@ public:
 
 	inline sample_t userWaveSample( const float _sample ) const
 	{
-		// Precise implementation
-//		const float frame = fraction( _sample ) * m_frames;
-//		const f_cnt_t f1 = static_cast<f_cnt_t>( frame );
-//		const f_cnt_t f2 = ( f1 + 1 ) % m_frames;
-//		sample_t waveSample = linearInterpolate( m_data[f1][0],
-//						m_data[f2][0],
-//						fraction( frame ) );
-//		return waveSample;
-
-		// Fast implementation
 		const float frame = _sample * m_frames;
 		f_cnt_t f1 = static_cast<f_cnt_t>( frame ) % m_frames;
 		if( f1 < 0 )
 		{
 			f1 += m_frames;
 		}
-		return m_data[f1][0];
+		return linearInterpolate( m_data[f1][0], m_data[ (f1 + 1) % m_frames ][0], fraction( frame ) );
 	}
 
 	static QString tryToMakeRelative( const QString & _file );
@@ -211,22 +260,19 @@ public:
 public slots:
 	void setAudioFile( const QString & _audio_file );
 	void loadFromBase64( const QString & _data );
-	void setStartFrame( f_cnt_t start );
-	void setEndFrame( f_cnt_t end );
+	void setStartFrame( const f_cnt_t _s );
+	void setEndFrame( const f_cnt_t _e );
 	void setAmplification( float _a );
 	void setReversed( bool _on );
 
 
 private:
-	/*! Ensures that all settings are sane like end frame > start frame etc. */
-	void sanitizeSettings();
-
 	void update( bool _keep_settings = false );
 
     void convertIntToFloat ( int_sample_t * & _ibuf, f_cnt_t _frames, int _channels);
     void directFloatWrite ( sample_t * & _fbuf, f_cnt_t _frames, int _channels);
 
-	f_cnt_t decodeSampleSF( const char * _f, int_sample_t * & _buf,
+	f_cnt_t decodeSampleSF( const char * _f, sample_t * & _buf,
 						ch_cnt_t & _channels,
 						sample_rate_t & _sample_rate );
 #ifdef LMMS_HAVE_OGGVORBIS
@@ -253,15 +299,19 @@ private:
 	float m_frequency;
 	sample_rate_t m_sampleRate;
 
-	sampleFrame * getSampleFragment( f_cnt_t _start, f_cnt_t _frames,
-						bool _looped,
-						sampleFrame * * _tmp ) const;
-	f_cnt_t getLoopedIndex( f_cnt_t _index ) const;
+	sampleFrame * getSampleFragment( f_cnt_t _index, f_cnt_t _frames,
+						LoopMode _loopmode,
+						sampleFrame * * _tmp,
+						bool * _backwards, f_cnt_t _loopstart, f_cnt_t _loopend,
+						f_cnt_t _end ) const;
+	f_cnt_t getLoopedIndex( f_cnt_t _index, f_cnt_t _startf, f_cnt_t _endf  ) const;
+	f_cnt_t getPingPongIndex( f_cnt_t _index, f_cnt_t _startf, f_cnt_t _endf  ) const;
 
 
 signals:
 	void sampleUpdated();
 
 } ;
+
 
 #endif

@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2006-2010 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -42,6 +42,7 @@ class pixmapButton;
 
 class VstEffectControlDialog : public EffectControlDialog
 {
+	Q_OBJECT
 public:
 	VstEffectControlDialog( VstEffectControls * _controls );
 	virtual ~VstEffectControlDialog();

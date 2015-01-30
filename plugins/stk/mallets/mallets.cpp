@@ -4,7 +4,7 @@
  * Copyright (c) 2006-2008 Danny McRae <khjklujn/at/users.sourceforge.net>
  * Copyright (c) 2009-2010 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -81,15 +81,6 @@ malletsInstrument::malletsInstrument( InstrumentTrack * _instrument_track ):
 		!QFileInfo( configManager::inst()->stkDir() + QDir::separator()
 						+ "sinewave.raw" ).exists() )
 {
-	// try to inform user about missing Stk-installation
-	if( m_filesMissing && engine::hasGUI() )
-	{
-		QMessageBox::information( 0, tr( "Missing files" ),
-				tr( "Your Stk-installation seems to be "
-					"incomplete. Please make sure "
-					"the full Stk-package is installed!" ),
-				QMessageBox::Ok );
-	}
 
 	// ModalBar
 	m_presetsModel.addItem( tr( "Marimba" ) );
@@ -334,6 +325,16 @@ malletsInstrumentView::malletsInstrumentView( malletsInstrument * _instrument,
 	m_spreadKnob->setLabel( tr( "Spread" ) );
 	m_spreadKnob->move( 190, 140 );
 	m_spreadKnob->setHintText( tr( "Spread:" ) + " ", "" );
+
+	// try to inform user about missing Stk-installation
+	if( _instrument->m_filesMissing && engine::hasGUI() )
+	{
+		QMessageBox::information( 0, tr( "Missing files" ),
+				tr( "Your Stk-installation seems to be "
+					"incomplete. Please make sure "
+					"the full Stk-package is installed!" ),
+				QMessageBox::Ok );
+	}
 }
 
 

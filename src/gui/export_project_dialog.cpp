@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004-2013 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -251,14 +251,15 @@ ProjectRenderer* exportProjectDialog::prepRender()
 	Mixer::qualitySettings qs =
 			Mixer::qualitySettings(
 					static_cast<Mixer::qualitySettings::Interpolation>(interpolationCB->currentIndex()),
-					static_cast<Mixer::qualitySettings::Oversampling>(oversamplingCB->currentIndex()),
-					sampleExactControllersCB->isChecked(),
-					aliasFreeOscillatorsCB->isChecked() );
+					static_cast<Mixer::qualitySettings::Oversampling>(oversamplingCB->currentIndex()) );
+
+	const int samplerates[5] = { 44100, 48000, 88200, 96000, 192000 };
+	const int bitrates[6] = { 64, 128, 160, 192, 256, 320 };
 
 	ProjectRenderer::OutputSettings os = ProjectRenderer::OutputSettings(
-			samplerateCB->currentText().section(" ", 0, 0).toUInt(),
+			samplerates[ samplerateCB->currentIndex() ],
 			false,
-			bitrateCB->currentText().section(" ", 0, 0).toUInt(),
+			bitrates[ bitrateCB->currentIndex() ],
 			static_cast<ProjectRenderer::Depths>( depthCB->currentIndex() ) );
 
 	engine::getSong()->setExportLoop( exportLoopCB->isChecked() );

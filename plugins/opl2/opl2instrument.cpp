@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2014 Raine M. Ekman <raine/at/iki/fi>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -283,7 +283,7 @@ int opl2instrument::pushVoice(int v) {
 	return i;
 }
 
-bool opl2instrument::handleMidiEvent( const MidiEvent& event, const MidiTime& time )
+bool opl2instrument::handleMidiEvent( const MidiEvent& event, const MidiTime& time, f_cnt_t offset )
 {
 	emulatorMutex.lock();
 	int key, vel, voice, tmp_pb;
@@ -497,7 +497,7 @@ void opl2instrument::loadPatch(unsigned char inst[14]) {
 void opl2instrument::tuneEqual(int center, float Hz) {
 	float tmp;
 	for(int n=0; n<128; ++n) {
-		tmp = Hz*pow( 2, ( n - center ) / 12.0 + pitchbend / 1200.0 );
+		tmp = Hz*pow( 2.0, ( n - center ) * ( 1.0 / 12.0 ) + pitchbend * ( 1.0 / 1200.0 ) );
 		fnums[n] = Hz2fnum( tmp );
 	}
 }
@@ -505,7 +505,7 @@ void opl2instrument::tuneEqual(int center, float Hz) {
 // Find suitable F number in lowest possible block
 int opl2instrument::Hz2fnum(float Hz) {
 	for(int block=0; block<8; ++block) {
-		unsigned int fnum = Hz * pow(2, 20-block) / 49716;
+		unsigned int fnum = Hz * pow( 2.0, 20.0 - (double)block ) * ( 1.0 / 49716.0 );
 		if(fnum<1023) {
 			return fnum + (block << 10);
 		}

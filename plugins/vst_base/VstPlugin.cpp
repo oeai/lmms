@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2005-2013 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  * 
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -415,7 +415,7 @@ void VstPlugin::setParameterDump( const QMap<QString, QString> & _pdump )
 		{
 			( *it ).section( ':', 0, 0 ).toInt(),
 			"",
-			( *it ).section( ':', 1, 1 ).toFloat()
+			( *it ).section( ':', 2, -1 ).toFloat()
 		} ;
 		m.addInt( item.index );
 		m.addString( item.shortLabel );

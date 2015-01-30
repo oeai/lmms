@@ -4,7 +4,7 @@
  *
  * Copyright (c) 2008-2009 Paul Giblock <drfaygo/at/gmail.com>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -158,7 +158,7 @@ LfoControllerDialog::LfoControllerDialog( Controller * _model, QWidget * _parent
 	moog_saw_wave_btn->setInactiveGraphic(
 		embed::getIconPixmap( "moog_saw_wave_inactive" ) );
 	toolTip::add( moog_saw_wave_btn,
-			tr( "Click here for a a moog saw-wave." ) );
+			tr( "Click here for a moog saw-wave." ) );
 
 	pixmapButton * exp_wave_btn = new pixmapButton( this, NULL );
 	exp_wave_btn->move( CD_LFO_SHAPES_X + 15, CD_LFO_SHAPES_Y + 15 );

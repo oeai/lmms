@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2007-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -25,10 +25,11 @@
 #ifndef AUTOMATABLE_MODEL_H
 #define AUTOMATABLE_MODEL_H
 
-#include <math.h>
+#include "lmms_math.h"
 
 #include "JournallingObject.h"
 #include "Model.h"
+#include "MidiTime.h"
 
 
 // simple way to map a property of a view to a model
@@ -60,12 +61,18 @@
 
 class ControllerConnection;
 
-
 class EXPORT AutomatableModel : public Model, public JournallingObject
 {
 	Q_OBJECT
 public:
 	typedef QVector<AutomatableModel *> AutoModelVector;
+
+	enum ScaleType
+	{
+		Linear,
+		Logarithmic,
+		Decibel
+	};
 
 	enum DataType
 	{
@@ -128,7 +135,6 @@ public:
 
 	float controllerValue( int frameOffset ) const;
 
-
 	template<class T>
 	T initValue() const
 	{
@@ -157,7 +163,11 @@ public:
 	{
 		return castValue<T>( m_step );
 	}
-
+	
+	//! @brief Returns value scaled with the scale type and min/max values of this model
+	float scaledValue( float value ) const;
+	//! @brief Returns value applied with the inverse of this model's scale type
+	float inverseScaledValue( float value ) const;
 
 	void setInitValue( const float value );
 
@@ -175,6 +185,17 @@ public:
 	}
 
 	void setRange( const float min, const float max, const float step = 1 );
+	void setScaleType( ScaleType sc ) {
+		m_scaleType = sc;
+	}
+	void setScaleLogarithmic( bool setToTrue = true )
+	{
+		setScaleType( setToTrue ? Logarithmic : Linear );
+	}
+	bool isScaleLogarithmic() const
+	{
+		return m_scaleType == Logarithmic;
+	}
 
 	void setStep( const float step );
 
@@ -193,8 +214,14 @@ public:
 
 	void unlinkAllModels();
 
-	/*! \brief Saves settings (value, automation links and controller connections) of AutomatableModel into
-				specified DOM element using <name> as attribute/node name */
+	/**
+	 * @brief Saves settings (value, automation links and controller connections) of AutomatableModel into
+	 *  specified DOM element using <name> as attribute/node name
+	 * @param doc TODO
+	 * @param element Where this option shall be saved.
+	 *  Depending on the model, this can be done in an attribute or in a subnode.
+	 * @param name Name to store this model as.
+	 */
 	virtual void saveSettings( QDomDocument& doc, QDomElement& element, const QString& name );
 
 	/*! \brief Loads settings (value, automation links and controller connections) of AutomatableModel from
@@ -206,27 +233,27 @@ public:
 		return "automatablemodel";
 	}
 
-	void prepareJournalEntryFromOldVal();
-
-	void addJournalEntryFromOldToCurVal();
-
-
-	QString displayValue( const float val ) const
-	{
-		switch( m_dataType )
-		{
-			case Float: return QString::number( castValue<float>( val ) );
-			case Integer: return QString::number( castValue<int>( val ) );
-			case Bool: return QString::number( castValue<bool>( val ) );
-		}
-		return "0";
-	}
+	QString displayValue( const float val ) const;
 
 	bool hasLinkedModels() const
 	{
 		return m_hasLinkedModels;
 	}
 
+	// a way to track changed values in the model and avoid using signals/slots - useful for speed-critical code.
+	// note that this method should only be called once per period since it resets the state of the variable - so if your model
+	// has to be accessed by more than one object, then this function shouldn't be used.
+	bool isValueChanged()
+	{
+		if( m_valueChanged )
+		{
+			m_valueChanged = false;
+			return true;
+		}
+		return false;
+	}
+
+	float globalAutomationValueAt( const MidiTime& time );
 
 public slots:
 	virtual void reset();
@@ -236,9 +263,10 @@ public slots:
 
 
 protected:
-	virtual void redoStep( JournalEntry& je );
-	virtual void undoStep( JournalEntry& je );
-
+	//! returns a value which is in range between min() and
+	//! max() and aligned according to the step size (step size 0.05 -> value
+	//! 0.12345 becomes 0.10 etc.). You should always call it at the end after
+	//! doing your own calculations.
 	float fittedValue( float value ) const;
 
 
@@ -256,8 +284,17 @@ private:
 	void linkModel( AutomatableModel* model );
 	void unlinkModel( AutomatableModel* model );
 
+	//! @brief Scales @value from linear to logarithmic.
+	//! Value should be within [0,1]
+	template<class T> T logToLinearScale( T value ) const;
+
+	//! rounds @a value to @a where if it is close to it
+	//! @param value will be modified to rounded value
+	template<class T> void roundAt( T &value, const T &where ) const;
+
 
 	DataType m_dataType;
+	ScaleType m_scaleType; //! scale type, linear by default
 	float m_value;
 	float m_initValue;
 	float m_minValue;
@@ -265,17 +302,19 @@ private:
 	float m_step;
 	float m_range;
 	float m_centerValue;
+	
+	bool m_valueChanged;
 
 	// most objects will need this temporarily (until sampleExact is
 	// standard)
 	float m_oldValue;
-	bool m_journalEntryReady;
 	int m_setValueDepth;
 
 	AutoModelVector m_linkedModels;
 	bool m_hasLinkedModels;
 
 
+	//! NULL if not appended to controller, otherwise connection info
 	ControllerConnection* m_controllerConnection;
 
 

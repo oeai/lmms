@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2005-2009 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -35,30 +35,40 @@
 class trackContainer;
 
 
-class pluginBrowser : public SideBarWidget
+class PluginBrowser : public SideBarWidget
 {
 	Q_OBJECT
 public:
-	pluginBrowser( QWidget * _parent );
-	virtual ~pluginBrowser();
+	PluginBrowser( QWidget * _parent );
+	virtual ~PluginBrowser();
 
 
 private:
-	Plugin::DescriptorList m_pluginDescriptors;
-
 	QWidget * m_view;
-
-} ;
-
+};
 
 
 
-class pluginDescWidget : public QWidget
+
+class PluginDescList : public QWidget
 {
 	Q_OBJECT
 public:
-	pluginDescWidget( const Plugin::Descriptor & _pd, QWidget * _parent );
-	virtual ~pluginDescWidget();
+	PluginDescList(QWidget* parent);
+
+private:
+	Plugin::DescriptorList m_pluginDescriptors;
+};
+
+
+
+
+class PluginDescWidget : public QWidget
+{
+	Q_OBJECT
+public:
+	PluginDescWidget( const Plugin::Descriptor & _pd, QWidget * _parent );
+	virtual ~PluginDescWidget();
 
 
 protected:
@@ -81,7 +91,7 @@ private:
 	bool m_mouseOver;
 	int m_targetHeight;
 
-} ;
+};
 
 
 #endif

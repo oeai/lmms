@@ -4,7 +4,7 @@
  * Copyright (c) 2006-2007 Andreas Brandmaier <andy/at/brandmaier/dot/de>
  *               2008 Paul Giblock <drfaygo/at/gmail/dot/com>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -150,7 +150,7 @@ public slots:
 
 	void setLength( int _size );
 
-	void setSampleAt( int _samplePos, float _value );
+	void setSampleAt( int x, float val );
 	void setSamples( const float * _value );
 
 	void setWaveToSine();
@@ -172,6 +172,7 @@ signals:
 	void rangeChanged();
 
 private:
+	void drawSampleAt( int x, float val );
 
 	QVector<float> m_samples;
 	float m_minValue;

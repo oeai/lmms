@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2004-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -51,7 +51,7 @@
 #include "MidiClient.h"
 #include "DataFile.h"
 #include "NotePlayHandle.h"
-#include "pattern.h"
+#include "Pattern.h"
 #include "PianoRoll.h"
 #include "ProjectJournal.h"
 #include "project_notes.h"
@@ -471,14 +471,14 @@ void song::playBB()
 
 
 
-void song::playPattern( pattern * _patternToPlay, bool _loop )
+void song::playPattern( Pattern* patternToPlay, bool _loop )
 {
 	if( isStopped() == false )
 	{
 		stop();
 	}
 
-	m_patternToPlay = _patternToPlay;
+	m_patternToPlay = patternToPlay;
 	m_loopPattern = _loop;
 
 	if( m_patternToPlay != NULL )
@@ -666,8 +666,7 @@ void song::addBBTrack()
 {
 	engine::mixer()->lock();
 	track * t = track::create( track::BBTrack, this );
-	engine::getBBTrackContainer()->setCurrentBB(
-						bbTrack::numOfBBTrack( t ) );
+	engine::getBBTrackContainer()->setCurrentBB( dynamic_cast<bbTrack *>( t )->index() );
 	engine::mixer()->unlock();
 }
 
@@ -877,6 +876,8 @@ void song::createNewProjectFromTemplate( const QString & _template )
 // load given song
 void song::loadProject( const QString & _file_name )
 {
+	QDomNode node;
+
 	m_loadingProject = true;
 
 	clearProject();
@@ -894,6 +895,8 @@ void song::loadProject( const QString & _file_name )
 		createNewProject();
 		return;
 	}
+
+	DataFile::LocaleHelper localeHelper( DataFile::LocaleHelper::ModeLoad );
 
 	engine::mixer()->lock();
 
@@ -918,7 +921,19 @@ void song::loadProject( const QString & _file_name )
 	//Backward compatibility for LMMS <= 0.4.15
 	PeakController::initGetControllerBySetting();
 
-	QDomNode node = dataFile.content().firstChild();
+	// Load mixer first to be able to set the correct range for FX channels
+	node = dataFile.content().firstChildElement( engine::fxMixer()->nodeName() );
+	if( !node.isNull() )
+	{
+		engine::fxMixer()->restoreState( node.toElement() );
+		if( engine::hasGUI() )
+		{
+			// refresh FxMixerView
+			engine::fxMixerView()->refreshDisplay();
+		}
+	}
+
+	node = dataFile.content().firstChild();
 	while( !node.isNull() )
 	{
 		if( node.isElement() )
@@ -930,10 +945,6 @@ void song::loadProject( const QString & _file_name )
 			else if( node.nodeName() == "controllers" )
 			{
 				restoreControllerStates( node.toElement() );
-			}
-			else if( node.nodeName() == engine::fxMixer()->nodeName() )
-			{
-				engine::fxMixer()->restoreState( node.toElement() );
 			}
 			else if( engine::hasGUI() )
 			{
@@ -995,6 +1006,8 @@ void song::loadProject( const QString & _file_name )
 // only save current song as _filename and do nothing else
 bool song::saveProjectFile( const QString & _filename )
 {
+	DataFile::LocaleHelper localeHelper( DataFile::LocaleHelper::ModeSave );
+
 	DataFile dataFile( DataFile::SongProject );
 
 	m_tempoModel.saveSettings( dataFile, dataFile.head(), "bpm" );
@@ -1186,12 +1199,28 @@ void song::exportProject(bool multiExport)
 	efd.setAcceptMode( FileDialog::AcceptSave );
 
 
-	if( efd.exec() == QDialog::Accepted &&
-		!efd.selectedFiles().isEmpty() && !efd.selectedFiles()[0].isEmpty() )
+	if( efd.exec() == QDialog::Accepted && !efd.selectedFiles().isEmpty() && !efd.selectedFiles()[0].isEmpty() )
 	{
-		const QString export_file_name = efd.selectedFiles()[0];
-		exportProjectDialog epd( export_file_name,
-						engine::mainWindow(), multiExport );
+		QString suffix = "";
+		if ( !multiExport )
+		{
+			int stx = efd.selectedNameFilter().indexOf( "(*." );
+			int etx = efd.selectedNameFilter().indexOf( ")" );
+	
+			if ( stx > 0 && etx > stx ) 
+			{
+				// Get first extension from selected dropdown.
+				// i.e. ".wav" from "WAV-File (*.wav), Dummy-File (*.dum)"
+				suffix = efd.selectedNameFilter().mid( stx + 2, etx - stx - 2 ).split( " " )[0].trimmed();
+				if ( efd.selectedFiles()[0].endsWith( suffix ) )
+				{
+					suffix = "";
+				}
+			}
+		}
+
+		const QString export_file_name = efd.selectedFiles()[0] + suffix;
+		exportProjectDialog epd( export_file_name, engine::mainWindow(), multiExport );
 		epd.exec();
 	}
 }

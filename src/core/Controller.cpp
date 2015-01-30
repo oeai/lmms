@@ -5,7 +5,7 @@
  * Copyright (c) 2008 Paul Giblock <drfaygo/at/gmail.com>
  * Copyright (c) 2014 Lukas W <lukaswhl/at/gmail.com>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -173,8 +173,11 @@ Controller * Controller::create( ControllerTypes _ct, Model * _parent )
 			if( dummy )
 				c = dummy;
 			else
+			{
 				c = new Controller( DummyController, NULL,
 								QString() );
+				dummy = c;
+			}
 			break;
 
 		case Controller::LfoController:

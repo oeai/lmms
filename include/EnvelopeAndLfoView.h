@@ -4,7 +4,7 @@
  *
  * Copyright (c) 2004-2009 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  *
- * This file is part of Linux MultiMedia Studio - http://lmms.sourceforge.net
+ * This file is part of LMMS - http://lmms.io
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -90,7 +90,8 @@ private:
 
 	ledCheckBox * m_x100Cb;
 	ledCheckBox * m_controlEnvAmountCb;
-
+	
+	float m_randomGraph;
 } ;
 
 #endif
