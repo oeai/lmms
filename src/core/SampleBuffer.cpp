@@ -154,6 +154,25 @@ SampleBuffer::~SampleBuffer()
 
 
 
+void SampleBuffer::sanitizeSettings()
+{
+	m_varLock.lock();
+
+	if( m_startFrame >= m_endFrame )
+	{
+		m_endFrame = m_startFrame+1;
+	}
+
+	if( m_loopStartFrame >= m_loopEndFrame )
+	{
+		m_loopEndFrame = m_loopStartFrame+1;
+	}
+
+	m_varLock.unlock();
+}
+
+
+
 
 void SampleBuffer::update( bool _keep_settings )
 {
@@ -733,14 +752,14 @@ sampleFrame * SampleBuffer::getSampleFragment( f_cnt_t _start,
 {
 	if( _looped )
 	{
-		if( _start + _frames <= m_loopEndFrame )
+		if( _start + _frames <= m_loopEndFrame || m_loopStartFrame >= m_loopEndFrame )
 		{
 			return m_data + _start;
 		}
 	}
 	else
 	{
-		if( _start + _frames <= m_endFrame )
+		if( _start + _frames <= m_endFrame || m_startFrame >= m_endFrame )
 		{
 			return m_data + _start;
 		}
@@ -826,6 +845,27 @@ void SampleBuffer::visualize( QPainter & _p, const QRect & _dr,
 	delete[] l;
 }
 
+
+
+void SampleBuffer::setLoopStartFrame( f_cnt_t start )
+{
+	m_varLock.lock();
+	m_loopStartFrame = start;
+	m_varLock.unlock();
+
+	sanitizeSettings();
+}
+
+
+
+void SampleBuffer::setLoopEndFrame( f_cnt_t end )
+{
+	m_varLock.lock();
+	m_loopEndFrame = end;
+	m_varLock.unlock();
+
+	sanitizeSettings();
+}
 
 
 
@@ -1240,21 +1280,25 @@ void SampleBuffer::loadFromBase64( const QString & _data )
 
 
 
-void SampleBuffer::setStartFrame( const f_cnt_t _s )
+void SampleBuffer::setStartFrame( f_cnt_t start )
 {
 	m_varLock.lock();
-	m_loopStartFrame = m_startFrame = _s;
+	m_loopStartFrame = m_startFrame = start;
 	m_varLock.unlock();
+
+	sanitizeSettings();
 }
 
 
 
 
-void SampleBuffer::setEndFrame( const f_cnt_t _e )
+void SampleBuffer::setEndFrame( f_cnt_t end )
 {
 	m_varLock.lock();
-	m_loopEndFrame = m_endFrame = _e;
+	m_loopEndFrame = m_endFrame = end;
 	m_varLock.unlock();
+
+	sanitizeSettings();
 }
 
 
